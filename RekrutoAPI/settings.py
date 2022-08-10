@@ -10,7 +10,9 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/4.0/ref/settings/
 """
 
+import os
 from pathlib import Path
+import sys
 from decouple import config
 import dj_database_url
 import django_heroku
@@ -31,7 +33,8 @@ DEBUG = config('DEBUG', default=False, cast=bool)
 
 
 
-ALLOWED_HOSTS = ['*']
+# ALLOWED_HOSTS = ['*']
+ALLOWED_HOSTS = os.getenv("DJANGO_ALLOWED_HOSTS", "127.0.0.1,localhost").split(",")
 
 
 # Application definition
@@ -96,17 +99,33 @@ WSGI_APPLICATION = 'RekrutoAPI.wsgi.application'
 # DATABASES['default'] = dj_database_url.config(conn_max_age=600, ssl_require=True)
 # DATABASES['default'] = dj_database_url.config(default=config('DATABASE_URL'))
 
-DATABASES={}
+# DATABASES={}
 
-if DEBUG:
-    DATABASES["default"]={
-            'ENGINE': 'django.db.backends.sqlite3',
-            'NAME': BASE_DIR / 'db.sqlite3',
+# if DEBUG:
+#     DATABASES["default"]={
+#             'ENGINE': 'django.db.backends.sqlite3',
+#             'NAME': BASE_DIR / 'db.sqlite3',
 
+#     }
+# else:
+#     DATABASES['default'] = dj_database_url.config(conn_max_age=600, ssl_require=True)
+#     DATABASES['default'] = dj_database_url.config(default=config('DATABASE_URL'))
+
+DEVELOPMENT_MODE = os.getenv("DEVELOPMENT_MODE", "False") == "True"
+
+if DEVELOPMENT_MODE is True:
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.sqlite3",
+            "NAME": os.path.join(BASE_DIR, "db.sqlite3"),
+        }
     }
-else:
-    DATABASES['default'] = dj_database_url.config(conn_max_age=600, ssl_require=True)
-    DATABASES['default'] = dj_database_url.config(default=config('DATABASE_URL'))
+elif len(sys.argv) > 0 and sys.argv[1] != 'collectstatic':
+    if os.getenv("DATABASE_URL", None) is None:
+        raise Exception("DATABASE_URL environment variable not defined")
+    DATABASES = {
+        "default": dj_database_url.parse(os.environ.get("DATABASE_URL")),
+    }
 
 
 # Password validation
@@ -147,8 +166,12 @@ USE_TZ = True
 # STATIC_ROOT = BASE_DIR /'staticfiles'
 
 # STATICFILES_STORAGE = "whitenoise.storage.CompressedStaticFilesStorage"
-STATIC_URL = '/static/'
-STATIC_ROOT=BASE_DIR / 'staticfiles'
+# STATIC_URL = '/static/'
+# STATIC_ROOT=BASE_DIR / 'static'
+
+STATIC_URL = "/static/"
+STATIC_ROOT = os.path.join(BASE_DIR, "staticfiles")
+
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
 # Default primary key field type
